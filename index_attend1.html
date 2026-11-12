@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#CFB991">
+<title>Practice Check-In</title>
+<style>
+  :root {
+    --bg: #f4f6f5;
+    --card: #ffffff;
+    --text: #15201d;
+    --muted: #5d6b67;
+    --line: #d9e0dd;
+    --brand: #CFB991;
+    --brand-ink: #000000;
+    --ok: #15803d;
+    --ok-soft: #dcfce7;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1412;
+      --card: #172120;
+      --text: #ecf2f0;
+      --muted: #9aaba6;
+      --line: #2b3a37;
+      --brand: #CFB991;
+      --brand-ink: #000000;
+      --ok: #4ade80;
+      --ok-soft: #12321f;
+      --warn: #fbbf24;
+      --warn-soft: #3a2c0c;
+      --bad: #f87171;
+      --bad-soft: #3b1515;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+  }
+  header { width: 100%; max-width: 420px; text-align: center; margin-bottom: 18px; }
+  .club { font-weight: 700; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+  .loc { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  main {
+    width: 100%; max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.06);
+  }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fade .18s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .status { text-align: center; padding: 8px 0 4px; }
+  .badge {
+    width: 96px; height: 96px; border-radius: 50%;
+    display: grid; place-items: center; margin: 0 auto 18px;
+  }
+  .badge svg { width: 52px; height: 52px; }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.bad { background: var(--bad-soft); color: var(--bad); }
+  .badge.pop { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop { from { transform: scale(.6); } to { transform: scale(1); } }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 21px; margin: 0 0 6px; }
+  p { margin: 0 0 14px; line-height: 1.45; }
+  .muted { color: var(--muted); }
+  .big-time { font-size: 17px; color: var(--muted); }
+
+  .spinner {
+    width: 44px; height: 44px; margin: 18px auto 18px;
+    border: 4px solid var(--line); border-top-color: var(--brand);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  label { display: block; font-weight: 600; font-size: 15px; margin: 16px 0 6px; }
+  input {
+    width: 100%; font: inherit; font-size: 17px;
+    padding: 14px 14px; border-radius: 12px;
+    border: 1.5px solid var(--line); background: var(--bg); color: var(--text);
+    -webkit-appearance: none; appearance: none;
+  }
+  input:focus { outline: none; border-color: var(--brand); }
+  input.code {
+    text-align: center; font-size: 30px; letter-spacing: .4em; padding-left: .4em;
+    font-variant-numeric: tabular-nums;
+  }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  button {
+    font: inherit; font-weight: 650; font-size: 17px;
+    width: 100%; margin-top: 22px; padding: 15px;
+    border: 0; border-radius: 12px; cursor: pointer;
+    background: var(--brand); color: var(--brand-ink);
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  button.secondary { background: transparent; color: var(--brand); border: 1.5px solid var(--line); margin-top: 12px; }
+  .link {
+    background: none; border: 0; padding: 0; margin: 0; width: auto;
+    color: var(--brand); font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: underline;
+  }
+  .error {
+    display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+    background: var(--bad-soft); color: var(--bad); font-size: 15px; line-height: 1.4;
+  }
+  .error.show { display: block; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 12px; flex-wrap: wrap; }
+  footer { width: 100%; max-width: 420px; text-align: center; margin-top: 18px; font-size: 14px; color: var(--muted); }
+  footer .link { font-size: 14px; }
+  .steps { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
+  .steps span { width: 28px; height: 4px; border-radius: 2px; background: var(--line); }
+  .steps span.on { background: var(--brand); }
+</style>
+</head>
+<body>
+<script>
+  // ==========================================================================
+  // CONFIGURE THESE THREE VALUES (see README.md, step 7)
+  // ==========================================================================
+  var CONFIG = {
+    // The Web app URL from Apps Script → Deploy → Manage deployments. Ends in /exec
+    API_URL: 'https://script.google.com/macros/s/AKfycbzAJlL1y_wkC6VKB-oljAzdddr73RiYYEqVv6P3L40_V0bHxDQGiNHz4lxqRrfXvEPy/exec',
+    // Shown at the top of the page
+    CLUB_NAME: 'Purdue Run Club',
+    // Shown as a hint under the email box, e.g. "youruniversity.edu"
+    EMAIL_DOMAIN: 'purdue.edu'
+  };
+</script>
+
+<header>
+  <div class="club" id="clubName">Running Club</div>
+  <div class="loc" id="locLabel"></div>
+</header>
+
+<main>
+  <!-- Working -->
+  <section class="screen status active" id="s-loading">
+    <div class="spinner" aria-hidden="true"></div>
+    <h2 id="loadingText">Checking you in…</h2>
+  </section>
+
+  <!-- Checked in -->
+  <section class="screen status" id="s-done">
+    <div class="badge ok" id="doneBadge" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h1 id="doneTitle">You're checked in</h1>
+    <p class="big-time" id="doneDetail"></p>
+    <p class="muted" id="doneNote">Have a good run! You can close this page.</p>
+  </section>
+
+  <!-- Outside practice hours -->
+  <section class="screen status" id="s-closed">
+    <div class="badge warn" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </div>
+    <h1>Check-in isn't open</h1>
+    <p class="muted" id="closedDetail">Check-in only works around practice times. Tap again when practice is starting.</p>
+    <button class="secondary" type="button" id="closedRetry">Try again</button>
+  </section>
+
+  <!-- Problem -->
+  <section class="screen status" id="s-error">
+    <div class="badge bad" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v6"/><path d="M12 17h.01"/></svg>
+    </div>
+    <h1>That didn't go through</h1>
+    <p class="muted" id="errorDetail">Check your connection and try again.</p>
+    <button type="button" id="errorRetry">Try again</button>
+  </section>
+
+  <!-- Verify step 1: name + email -->
+  <section class="screen" id="s-email">
+    <div class="steps" aria-hidden="true"><span class="on"></span><span></span></div>
+    <h2>Link this phone</h2>
+    <p class="muted" id="emailIntro">One-time setup. We'll email a code to your school address. After this, just tap the tag at practice.</p>
+    <form id="emailForm" novalidate>
+      <label for="name">Your name</label>
+      <input id="name" name="name" autocomplete="name" autocapitalize="words" placeholder="First and last name" required maxlength="60">
+      <label for="email">School email</label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required maxlength="120">
+      <div class="hint" id="emailHint"></div>
+      <button type="submit" id="emailBtn">Email me a code</button>
+      <div class="error" id="emailErr" role="alert"></div>
+    </form>
+  </section>
+
+  <!-- Verify step 2: code -->
+  <section class="screen" id="s-code">
+    <div class="steps" aria-hidden="true"><span class="on"></span><span class="on"></span></div>
+    <h2>Enter your code</h2>
+    <p class="muted">We sent a 6-digit code to <strong id="codeEmail"></strong>. It may take a minute. Check junk/spam if you don't see it.</p>
+    <form id="codeForm" novalidate>
+      <label for="code" class="sr">6-digit code</label>
+      <input id="code" name="code" class="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="••••••" required>
+      <button type="submit" id="codeBtn">Verify and check in</button>
+      <div class="error" id="codeErr" role="alert"></div>
+    </form>
+    <div class="row">
+      <button type="button" class="link" id="resendBtn">Resend code</button>
+      <button type="button" class="link" id="changeEmailBtn">Use a different email</button>
+    </div>
+  </section>
+</main>
+
+<footer id="footer" hidden>
+  <span id="footerWho"></span>
+  <button type="button" class="link" id="forgetBtn">Not you?</button>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Storage: localStorage with a cookie fallback ----------
+  var PREFIX = 'checkin_';
+  var store = {
+    get: function (k) {
+      try { var v = window.localStorage.getItem(PREFIX + k); if (v !== null) return v; } catch (e) {}
+      var m = document.cookie.match(new RegExp('(?:^|; )' + PREFIX + k + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    },
+    set: function (k, v) {
+      try { window.localStorage.setItem(PREFIX + k, v); } catch (e) {}
+      try {
+        document.cookie = PREFIX + k + '=' + encodeURIComponent(v) +
+          '; max-age=34560000; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+      } catch (e) {}
+    },
+    remove: function (k) {
+      try { window.localStorage.removeItem(PREFIX + k); } catch (e) {}
+      try { document.cookie = PREFIX + k + '=; max-age=0; path=/'; } catch (e) {}
+    }
+  };
+
+  function randomId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    return Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  }
+
+  // ---------- Page state ----------
+  var params = new URLSearchParams(location.search);
+  var loc = (params.get('loc') || '').slice(0, 40);
+  var deviceId = store.get('device');
+  if (!deviceId) { deviceId = randomId(); store.set('device', deviceId); }
+  var pending = { name: store.get('name') || '', email: store.get('email') || '' };
+  var lastAction = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  $('clubName').textContent = CONFIG.CLUB_NAME;
+  document.title = CONFIG.CLUB_NAME + ' Check-In';
+  if (loc) $('locLabel').textContent = 'Location: ' + loc.replace(/[-_]+/g, ' ');
+  if (CONFIG.EMAIL_DOMAIN) {
+    $('emailHint').textContent = 'Use your address ending in @' + CONFIG.EMAIL_DOMAIN;
+    $('email').placeholder = 'you@' + CONFIG.EMAIL_DOMAIN;
+  }
+
+  function show(id) {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+    $(id).classList.add('active');
+    var name = store.get('token') ? store.get('name') : null;
+    $('footer').hidden = !name;
+    if (name) $('footerWho').textContent = 'Linked to ' + name + ' · ';
+  }
+
+  function loading(text) { $('loadingText').textContent = text; show('s-loading'); }
+
+  function showError(message, retry) {
+    $('errorDetail').textContent = message || 'Check your connection and try again.';
+    lastAction = retry || null;
+    $('errorRetry').hidden = !retry;
+    show('s-error');
+  }
+
+  function setFormError(id, message) {
+    var el = $(id);
+    el.textContent = message || '';
+    el.classList.toggle('show', !!message);
+  }
+
+  function busy(btn, on, label) {
+    btn.disabled = on;
+    if (label) btn.textContent = label;
+  }
+
+  // ---------- API ----------
+  function api(action, payload) {
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(CONFIG.API_URL)) {
+      return Promise.reject(new Error('config'));
+    }
+    var body = { action: action, loc: loc, ua: navigator.userAgent };
+    for (var k in payload) body[k] = payload[k];
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 30000);
+    // text/plain keeps this a "simple" request, which Apps Script accepts cross-origin.
+    return fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow',
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function (res) {
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }, function (err) { clearTimeout(timer); throw err; });
+  }
+
+  function networkMessage(err) {
+    if (err && err.message === 'config') {
+      return 'This check-in page isn\'t set up yet (missing API_URL). Tell a club officer.';
+    }
+    return 'Couldn\'t reach the check-in server. Check your signal and try again.';
+  }
+
+  // ---------- Check-in ----------
+  function checkIn() {
+    var token = store.get('token');
+    if (!token) return startVerify();
+    loading('Checking you in…');
+    api('checkin', { token: token }).then(handleCheckin, function (err) {
+      showError(networkMessage(err), checkIn);
+    });
+  }
+
+  function handleCheckin(r) {
+    if (r && r.ok) {
+      if (r.name) store.set('name', r.name);
+      var already = r.status === 'already';
+      $('doneTitle').textContent = already ? 'Already checked in' : 'You\'re checked in';
+      $('doneDetail').textContent = (r.name ? r.name + ' · ' : '') + (already ? 'at ' : '') + r.time;
+      $('doneNote').textContent = already ? 'You\'re on the list for this practice. No need to tap again.' : 'Have a good run! You can close this page.';
+      var badge = $('doneBadge');
+      badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop');
+      show('s-done');
+      if (!already && navigator.vibrate) navigator.vibrate(60);
+      return;
+    }
+    var code = r && r.error;
+    if (code === 'needs_verification') {
+      store.remove('token');
+      return startVerify('This phone isn\'t linked anymore. Verify once more and you\'re set.');
+    }
+    if (code === 'outside_hours') {
+      $('closedDetail').textContent = (r.name ? r.name + ', check-in' : 'Check-in') +
+        ' only works around practice times. Your phone is linked, so just tap again when practice is starting.';
+      show('s-closed');
+      return;
+    }
+    showError((r && r.message) || 'Something went wrong.', checkIn);
+  }
+
+  // ---------- Verification ----------
+  function startVerify(note) {
+    $('name').value = pending.name;
+    $('email').value = pending.email;
+    $('emailIntro').textContent = note ||
+      'One-time setup. We\'ll email a code to your school address. After this, just tap the tag at practice.';
+    setFormError('emailErr', '');
+    show('s-email');
+  }
+
+  function requestCode() {
+    var name = $('name').value.replace(/\s+/g, ' ').trim();
+    var email = $('email').value.trim().toLowerCase();
+    if (!name) return setFormError('emailErr', 'Please enter your name.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setFormError('emailErr', 'Please enter a valid email address.');
+    setFormError('emailErr', '');
+    busy($('emailBtn'), true, 'Sending…');
+    return api('requestCode', { name: name, email: email }).then(function (r) {
+      busy($('emailBtn'), false, 'Email me a code');
+      if (!r.ok) return setFormError('emailErr', r.message);
+      pending = { name: name, email: email };
+      store.set('name', name);
+      store.set('email', email);
+      $('codeEmail').textContent = email;
+      $('code').value = '';
+      setFormError('codeErr', '');
+      show('s-code');
+      setTimeout(function () { $('code').focus(); }, 50);
+    }, function (err) {
+      busy($('emailBtn'), false, 'Email me a code');
+      setFormError('emailErr', networkMessage(err));
+    });
+  }
+
+  function verifyCode() {
+    var code = $('code').value.replace(/\D/g, '');
+    if (code.length !== 6) return setFormError('codeErr', 'Enter the 6-digit code from the email.');
+    setFormError('codeErr', '');
+    busy($('codeBtn'), true, 'Verifying…');
+    api('verifyCode', { email: pending.email, code: code, deviceId: deviceId }).then(function (r) {
+      busy($('codeBtn'), false, 'Verify and check in');
+      if (!r.ok) {
+        setFormError('codeErr', r.message);
+        if (r.error === 'code_expired' || r.error === 'too_many_attempts') $('code').value = '';
+        return;
+      }
+      store.set('token', r.token);
+      if (r.name) store.set('name', r.name);
+      handleCheckin(r.checkin);
+    }, function (err) {
+      busy($('codeBtn'), false, 'Verify and check in');
+      setFormError('codeErr', networkMessage(err));
+    });
+  }
+
+  function resendCode() {
+    var btn = $('resendBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    api('requestCode', { name: pending.name, email: pending.email }).then(function (r) {
+      btn.textContent = r.ok ? 'Sent ✓' : 'Resend code';
+      if (!r.ok) setFormError('codeErr', r.message);
+      setTimeout(function () { btn.disabled = false; btn.textContent = 'Resend code'; }, 20000);
+    }, function (err) {
+      btn.disabled = false; btn.textContent = 'Resend code';
+      setFormError('codeErr', networkMessage(err));
+    });
+  }
+
+  function forget() {
+    var token = store.get('token');
+    store.remove('token');
+    store.remove('name');
+    store.remove('email');
+    pending = { name: '', email: '' };
+    if (token) api('forget', { token: token }).catch(function () {});
+    startVerify('This phone is no longer linked. Enter your own details to link it to you.');
+  }
+
+  // ---------- Wire up ----------
+  $('emailForm').addEventListener('submit', function (e) { e.preventDefault(); requestCode(); });
+  $('codeForm').addEventListener('submit', function (e) { e.preventDefault(); verifyCode(); });
+  $('code').addEventListener('input', function () {
+    var digits = this.value.replace(/\D/g, '').slice(0, 6);
+    if (this.value !== digits) this.value = digits;
+    if (digits.length === 6 && !$('codeBtn').disabled) verifyCode();
+  });
+  $('resendBtn').addEventListener('click', resendCode);
+  $('changeEmailBtn').addEventListener('click', function () { startVerify(); });
+  $('errorRetry').addEventListener('click', function () { if (lastAction) lastAction(); });
+  $('closedRetry').addEventListener('click', checkIn);
+  $('forgetBtn').addEventListener('click', forget);
+
+  checkIn();
+})();
+</script>
+</body>
+</html>
